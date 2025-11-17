@@ -6,6 +6,10 @@
     "module": "commonjs",
     "target": "ES2018",
     "experimentalDecorators": true,
-    "types": ["utools-api-types", "@types/node"]
+    "types": ["utools-api-types", "@types/node"],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
   }
 }
