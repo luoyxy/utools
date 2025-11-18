@@ -192,7 +192,6 @@ export class VSCode implements Plugin {
       utools.showNotification(`删除失败: ${error.message}`);
     }
     
-    utools.setSubInputValue("")
     utools.setSubInputValue("-rm")
   }
 
