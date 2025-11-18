@@ -252,7 +252,7 @@ export class VSCode implements Plugin {
       // 去掉开头的 file:///
       // console.log("item.data:", item.data);
       const fileName = decodeURIComponent(item.data);
-      let path = fileName.replace(/^file:\/\/\//, "");
+      let path = fileName.replace(/^file:\/\//, "");
       
       // 复制到剪贴板
       utools.copyText(path);
@@ -274,7 +274,7 @@ export class VSCode implements Plugin {
     try {
       // 去掉开头的 file:///
       const fileName = decodeURIComponent(item.data);
-      let path = fileName.replace(/^file:\/\/\//, "");
+      let path = fileName.replace(/^file:\/\//, "");
       
       // 构建 Total Commander 命令
       let cmd = `TOTALCMD64 /O /T "${path}"`;
@@ -311,13 +311,13 @@ export class VSCode implements Plugin {
     try {
       // 去掉开头的 file:///
       const fileName = decodeURIComponent(item.data);
-      let path = fileName.replace(/^file:\/\/\//, "");
+      let path = fileName.replace(/^file:\/\//, "");
       
       // 构建 Double Commander 命令
-      let cmd =  `doublecmd /O /T "${path}"`;
+      let cmd =  `open -a Double\\ Commander -n --args  -T -L "${path}"`;
 
       let shell = this.config.terminal;
-      if (shell.trim()) cmd = `${shell} "env; ${cmd}"`;
+      if (shell.trim()) cmd = `${shell} "${cmd}"`;
       
       console.log("Double Commander 命令:", cmd);
       
