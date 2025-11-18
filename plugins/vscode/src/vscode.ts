@@ -13,6 +13,9 @@ export class VSCode implements Plugin {
   delay = 100;
   config: Config;
   private isRemoveMode = false;
+  private isCopyMode = false;
+  private isTotalCmdMode = false;
+  private isDoubleCmdMode = false;
 
   constructor(code: string) {
     this.code = code;
@@ -35,13 +38,22 @@ export class VSCode implements Plugin {
   async search(word?: string): Promise<ListItem[]> {
     let files = await this.files();
 
-    // 检查是否为删除模式
+    // 检查各种模式
     this.isRemoveMode = word && word.includes("-rm");
+    this.isCopyMode = word && word.includes("-cp");
+    this.isTotalCmdMode = word && word.includes("-tc");
+    this.isDoubleCmdMode = word && word.includes("-dc");
     
-    // 如果是删除模式，从搜索词中移除 -rm 标识
+    // 从搜索词中移除模式标识
     let searchWord = word;
     if (this.isRemoveMode) {
       searchWord = word.replace(/-rm/g, "").trim();
+    } else if (this.isCopyMode) {
+      searchWord = word.replace(/-cp/g, "").trim();
+    } else if (this.isTotalCmdMode) {
+      searchWord = word.replace(/-tc/g, "").trim();
+    } else if (this.isDoubleCmdMode) {
+      searchWord = word.replace(/-dc/g, "").trim();
     }
 
     // 搜索
@@ -62,12 +74,20 @@ export class VSCode implements Plugin {
         let address = file;
         file = decodeURIComponent(file);
         let itemTitle = basename(file);
+        
+        // 根据不同模式设置标题
         if (this.isRemoveMode) {
           itemTitle = `删除: ${itemTitle}`;
-        }
-        else {
+        } else if (this.isCopyMode) {
+          itemTitle = `复制路径: ${itemTitle}`;
+        } else if (this.isTotalCmdMode) {
+          itemTitle = `打开(TC): ${itemTitle}`;
+        } else if (this.isDoubleCmdMode) {
+          itemTitle = `打开(DC): ${itemTitle}`;
+        } else {
           itemTitle = `打开: ${itemTitle}`;
         }
+        
         let item = new ListItem<string>(itemTitle, file, address);
         let ext = file.includes("remote") ? ".remote" : extname(file);
         item.icon = this.getIcon(ext);
@@ -100,6 +120,24 @@ export class VSCode implements Plugin {
     // 如果是删除模式，执行删除操作
     if (this.isRemoveMode) {
       this.handleRemoveOperation(item);
+      return;
+    }
+
+    // 如果是复制路径模式，执行复制操作
+    if (this.isCopyMode) {
+      this.handleCopyPath(item);
+      return;
+    }
+
+    // 如果是 Total Commander 模式，执行打开操作
+    if (this.isTotalCmdMode) {
+      this.handleTotalCommander(item);
+      return;
+    }
+
+    // 如果是 Double Commander 模式，执行打开操作
+    if (this.isDoubleCmdMode) {
+      this.handleDoubleCommander(item);
       return;
     }
 
@@ -203,6 +241,103 @@ export class VSCode implements Plugin {
   private showConfirmDialog(fileName: string): boolean {
     // 使用 confirm 对话框确认删除操作
     return confirm(`确定要删除历史记录吗？\n\n${fileName}`);
+  }
+
+  /**
+   * 处理复制路径操作
+   * @param item 要复制路径的项目
+   */
+  private handleCopyPath(item: ListItem<string>) {
+    try {
+      // 去掉开头的 file:///
+      // console.log("item.data:", item.data);
+      const fileName = decodeURIComponent(item.data);
+      let path = fileName.replace(/^file:\/\/\//, "");
+      
+      // 复制到剪贴板
+      utools.copyText(path);
+      
+      // 显示成功消息
+      utools.showNotification(`已复制路径: ${basename(path)}`);
+      
+    } catch (error) {
+      console.error("复制路径失败:", error);
+      utools.showNotification(`复制失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 处理 Total Commander 打开操作
+   * @param item 要打开的项目
+   */
+  private handleTotalCommander(item: ListItem<string>) {
+    try {
+      // 去掉开头的 file:///
+      const fileName = decodeURIComponent(item.data);
+      let path = fileName.replace(/^file:\/\/\//, "");
+      
+      // 构建 Total Commander 命令
+      let cmd = `TOTALCMD64 /O /T "${path}"`;
+
+      let shell = this.config.terminal;
+      if (shell.trim()) cmd = `${shell} "env; ${cmd}"`;
+      
+      console.log("Total Commander 命令:", cmd);
+      
+      // 执行命令
+      this.execCmd(cmd, {
+        timeout: 3000,
+        windowsHide: true,
+        encoding: "utf-8",
+        env: process.env,
+      }).then(() => {
+        utools.hideMainWindow();
+        utools.showNotification(`已用 Total Commander 打开: ${basename(path)}`);
+      }).catch((error) => {
+        console.error("Total Commander 打开失败:", error);
+        utools.showNotification(`打开失败: ${error}`);
+      });
+    } catch (error) {
+      console.error("Total Commander 打开失败:", error);
+      utools.showNotification(`打开失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 处理 Double Commander 打开操作
+   * @param item 要打开的项目
+   */
+  private handleDoubleCommander(item: ListItem<string>) {
+    try {
+      // 去掉开头的 file:///
+      const fileName = decodeURIComponent(item.data);
+      let path = fileName.replace(/^file:\/\/\//, "");
+      
+      // 构建 Double Commander 命令
+      let cmd =  `doublecmd /O /T "${path}"`;
+
+      let shell = this.config.terminal;
+      if (shell.trim()) cmd = `${shell} "env; ${cmd}"`;
+      
+      console.log("Double Commander 命令:", cmd);
+      
+      // 执行命令
+      this.execCmd(cmd, {
+        timeout: 3000,
+        windowsHide: true,
+        encoding: "utf-8",
+        env: process.env,
+      }).then(() => {
+        utools.hideMainWindow();
+        utools.showNotification(`已用 Double Commander 打开: ${basename(path)}`);
+      }).catch((error) => {
+        console.error("Double Commander 打开失败:", error);
+        utools.showNotification(`打开失败: ${error}`);
+      });
+    } catch (error) {
+      console.error("Double Commander 打开失败:", error);
+      utools.showNotification(`打开失败: ${error.message}`);
+    }
   }
 
   getIcon(ext: string): string {
