@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>唐诗宋词精选</title>
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+        function showNext() {
+            console.log("showNext")
+            $.post("http://loyal.xyyxr.cn/miscfun/shicirand", function(data, state) {
+                if (state == "success") {
+                    alert(data)
+                    console.log(data)
+                }
+            })
+        }
+    </script>
+</head>
+
+<body>
+    <h1>唐诗宋词精选</h1>
+    <div>
+        <button onclick="showNext()">下一首</button>
+    </div>
+</body>
+
+</html>

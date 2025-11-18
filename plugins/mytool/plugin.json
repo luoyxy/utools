@@ -1,0 +1,25 @@
+{
+    "logo": "./Img/news.png",
+    "preload": "preload.js",
+    "features": [{
+            "code": "news",
+            "explain": "新闻",
+            "cmds": ["news", "新闻", "资讯"],
+            "icon": "./Img/news.png"
+        },
+        {
+            "code": "technology",
+            "explain": "技术资讯",
+            "cmds": ["technology", "tc", "技术资讯"],
+            "icon": "./Img/zhihu.png"
+        },
+        {
+            "code": "weather",
+            "explain": "天气",
+            "cmds": ["weather", "天气"],
+            "icon": "./Img/tianqi.png"
+
+        }
+
+    ]
+}

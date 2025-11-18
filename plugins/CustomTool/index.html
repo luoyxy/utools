@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>模板</title>
+    <!-- <script>
+        document.write(String.format("<link rel=\"stylesheet\" href=\"{0}/preload.js\">", document.domain))
+    </script> -->
+    <!-- <link rel="stylesheet" href="./preload.js"> -->
+</head>
+<script src="./jquery.min.js"></script>
+<script src="./preload.js"></script>
+<style>
+    .yycenter {
+        margin: auto;
+        padding: 190px 0;
+        text-align: center;
+    }
+    
+    #yyContent {
+        font-size: 30px;
+    }
+    
+    #yyfrom {
+        color: seagreen;
+        font-size: 15px;
+    }
+    
+    .tscenter {
+        margin: auto;
+        text-align: center;
+    }
+    
+    #tstitle {
+        font-size: 30px;
+    }
+    
+    #tsauthor {
+        font-size: 15px;
+    }
+    
+    #tscontentitem {
+        font-size: 20px;
+    }
+    
+    .sccenter {
+        margin: auto;
+        text-align: center;
+    }
+    
+    #sctitle {
+        font-size: 30px;
+    }
+    
+    #scauthor {
+        font-size: 15px;
+    }
+    
+    #sccontentitem {
+        font-size: 20px;
+    }
+    
+    .autocheck {
+        position: absolute;
+        right: 0px;
+        width: 100px;
+    }
+</style>
+<script>
+    //循环定时器
+    function Timer(fn, t) {
+        var timerObj = setInterval(fn, t);
+
+        this.stop = function() {
+            if (timerObj) {
+                clearInterval(timerObj);
+                timerObj = null;
+            }
+            return this;
+        }
+
+        // start timer using current settings (if it's not already running)
+        this.start = function() {
+            if (!timerObj) {
+                this.stop();
+                timerObj = setInterval(fn, t);
+            }
+            return this;
+        }
+
+        // start with new or original interval, stop current interval
+        this.reset = function(newT = t) {
+            // console.log("autoclick reset:", new Date().getSeconds())
+            t = newT;
+            return this.stop().start();
+        }
+    }
+
+    var autoclickTimer = null
+
+    function InitWeb() {
+        window.SetInitCallBack(InitAfterPluginEnter)
+        console.log("InitWeb")
+    }
+
+    function InitAfterPluginEnter(code) {
+        var AutoClickBtId = "yybt"
+        var AutuClickIntervalTime = 5000
+        console.log(String.format("InitAfterPluginEnter:{0}", code))
+        $("#yybody").hide()
+        $("#tsbody").hide()
+        $("#scbody").hide()
+        if (code == "yiyan") {
+            $("#yybody").show()
+            NextYiYan()
+            AutoClickBtId = "yybt"
+            AutuClickIntervalTime = 30000
+            console.log("show 一言")
+        } else if (code == "tangshi300") {
+            $("#tsbody").show()
+            NextTangShi300()
+            console.log("show 唐诗三百首")
+            AutoClickBtId = "tsbt"
+            AutuClickIntervalTime = 60000
+        } else if (code == "shici") {
+            $("#scbody").show()
+            NextTangShiSongCi()
+            AutoClickBtId = "scbt"
+            AutuClickIntervalTime = 60000
+            console.log("show 诗词精选")
+
+        }
+
+        autoclickTimer = new Timer(function() {
+            // console.log("autoclick:", new Date().getSeconds())
+            var checkbox = document.getElementById("autocheck")
+            if (checkbox.checked) {
+                var e = document.createEvent("MouseEvents");
+                e.initEvent("click", true, true);
+                clickbt = document.getElementById(AutoClickBtId)
+                clickbt.dispatchEvent(e);
+                clickbt.focus();
+            }
+        }, AutuClickIntervalTime)
+    }
+
+    function NextYiYan() {
+        $.post("http://loyal.xyyxr.cn/miscfun/yiyanrand", function(data, state) {
+            if (state == "success") {
+                $("#yyContent").text(data['title'])
+                var subtitle = data['from1']
+                if (data['from2'] != "")
+                    subtitle = String.format("{0}|{1}", subtitle, data['from2'])
+                subtitle = String.format("{0}", subtitle)
+                $("#yyfrom").text(subtitle)
+                $("#yybt").focus();
+                autoclickTimer.reset();
+            }
+        })
+    }
+
+    function NextTangShi300() {
+        $.post("http://loyal.xyyxr.cn/miscfun/tangshi300", function(data, state) {
+            if (state == "success") {
+                $("#tstitle").text(data['title'])
+                $("#tsauthor").text(data['author'])
+                var content = data['contents']
+                itemlist = content.split('\n')
+                var divcontent = document.getElementById("tscontent")
+                divcontent.innerHTML = ""
+                for (let index = 0; index < itemlist.length; index++) {
+                    const element = itemlist[index];
+                    divcontent.innerHTML = divcontent.innerHTML + String.format(
+                        "<p id=\"tscontentitem\">{0}</p>", element)
+                }
+                $("#tsbt").focus();
+                autoclickTimer.reset();
+            }
+        })
+    }
+
+    function NextTangShiSongCi() {
+        $.post("http://loyal.xyyxr.cn/miscfun/shicirand", function(data, state) {
+            if (state == "success") {
+                $("#sctitle").text(data['title'])
+                $("#scauthor").text(data['author'])
+                var content = data['contents']
+                itemlist = content.split('\n')
+                var divcontent = document.getElementById("sccontent")
+                divcontent.innerHTML = ""
+                for (let index = 0; index < itemlist.length; index++) {
+                    const element = itemlist[index];
+                    divcontent.innerHTML = divcontent.innerHTML + String.format(
+                        "<p id=\"sccontentitem\">{0}</p>", element)
+                }
+                $("#scbt").focus();
+                autoclickTimer.reset();
+            }
+        })
+    }
+    InitWeb()
+</script>
+
+<body>
+    <div class="autocheck">
+        <input type="checkbox" checked=true id="autocheck"> <label for="autocheck">自动更新 </label>
+    </div>
+    <div id="yybody" class="yycenter">
+        <h1 id="yyContent"></h1>
+        <h3 id="yyfrom"></h3>
+        <button id="yybt" onclick="NextYiYan()">下一句</button>
+    </div>
+    <div id="tsbody" class="tscenter">
+        <h1 id="tstitle"></h1>
+        <p id="tsauthor"></p>
+        <div id="tscontent">
+        </div>
+        <button id="tsbt" onclick="NextTangShi300()">下一首</button>
+    </div>
+
+    <div id="scbody" class="sccenter">
+        <h1 id="sctitle"></h1>
+        <p id="scauthor"></p>
+        <div id="sccontent">
+        </div>
+        <button id="scbt" onclick="NextTangShiSongCi()">下一首</button>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,25 @@
+{
+    "main": "index.html",
+    "logo": "./Img/dushu.png",
+    "preload": "preload.js",
+    "features": [{
+            "code": "yiyan",
+            "explain": "一言精选",
+            "cmds": ["一言精选"],
+            "icon": "./Img/yulu.png"
+        },
+        {
+            "code": "tangshi300",
+            "explain": "唐诗三百首",
+            "cmds": ["唐诗三百首"],
+            "icon": "./Img/shici.png"
+        },
+        {
+            "code": "shici",
+            "explain": "唐诗宋词精选",
+            "cmds": ["唐诗宋词精选"],
+            "icon": "./Img/shici.png"
+        }
+
+    ]
+}
