@@ -140,7 +140,21 @@
         <label for="database">数据库配置</label>
         <div class="input-container">
             <input type="text" id="database" name="database" placeholder="输入数据库连接字符串或配置">
-            <div class="input-tips">输入 IDE 数据库文件地址</div>
+            <div class="input-tips">输入 IDE 数据库文件地址(完整路径)</div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="autoDetectDatabaseIDEName">数据库配置(多端版本)</label>
+        <div class="input-container">
+            <div style="margin-bottom: 8px;">
+                <label style="flex: none; font-weight: normal; padding-top: 0; display: inline-flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="autoDetectDatabase" name="autoDetectDatabase" style="width: auto; margin-right: 6px; cursor: pointer;">
+                    <span>启用多端自动适配(适用于多台电脑同步配置)</span>
+                </label>
+            </div>
+            <input type="text" id="autoDetectDatabaseIDEName" name="autoDetectDatabaseIDEName" placeholder="输入数据库文件地址中的IDE目录名" disabled>
+            <div class="input-tips">仅输入 IDE 目录名(如: Code, Cursor),系统会自动拼接完整路径</div>
         </div>
     </div>
 

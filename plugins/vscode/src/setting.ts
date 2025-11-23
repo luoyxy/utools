@@ -11,6 +11,8 @@ export interface Config {
   terminal?: string;
   command?: string;
   database?: string;
+  autoDetectDatabase?: string;
+  autoDetectDatabaseIDEName?: string;
   timeout?: string;
   collections?: IListItem[];
   [key: string]: string | IListItem[];
@@ -37,13 +39,32 @@ export function NewConfig(code: string): Config {
       "globalStorage",
       "state.vscdb"
     ),
+    autoDetectDatabase: "0",
+    autoDetectDatabaseIDEName: "Code",
     timeout: "3000"
   }
 }
 
 export function GetConfig(code: string): Config {
   let key = utools.getNativeId() + "." + code
-  return utools.dbStorage.getItem(key) as Config || {};
+  let config = utools.dbStorage.getItem(key) as Config
+  if (!config) {
+    config = NewConfig(code);
+    SaveConfig(config, false);
+  }
+
+  // 自动替换AppData路径
+  if (config.autoDetectDatabase === "1") {
+    config.database = join(
+      utools.getPath("appData"),
+      config.autoDetectDatabaseIDEName,
+      "User",
+      "globalStorage",
+      "state.vscdb"
+    );
+
+  }
+  return config;
 }
 
 export function SaveConfig(config: Config, ide: boolean = true) {
@@ -88,17 +109,86 @@ export class Setting implements Plugin {
     const form = document.getElementById('settingsForm');
     if (!form) return;
 
+    // 获取相关元素
+    const autoDetectCheckbox = document.getElementById('autoDetectDatabase') as HTMLInputElement;
+    const databaseInput = form.querySelector('[name="database"]') as HTMLInputElement;
+    const autoDetectDatabaseIDENameInput = form.querySelector('[name="autoDetectDatabaseIDEName"]') as HTMLInputElement;
+
+
     // 初始化绑定所有字段
     Object.keys(config).forEach(key => {
+      console.log("init config: ", key, config[key]);
       const input = form.querySelector(`[name="${key}"]`) as HTMLInputElement;
       if (input) {
-        input.value = config[key] as any;
+        // 对于复选框，设置 checked 属性
+        if (input.type === 'checkbox') {
+          input.checked = config[key] === '1';
+        } else {
+          input.value = config[key] as any;
+        }
+
         // 添加输入事件监听器，更新config对象
-        input.addEventListener('input', (e) => {
-          config[key] = (e.target as HTMLInputElement).value;
-        });
+        if (input.type === 'checkbox') {
+          input.addEventListener('change', (e) => {
+            config[key] = (e.target as HTMLInputElement).checked ? '1' : '0';
+          });
+        } else {
+          input.addEventListener('input', (e) => {
+            config[key] = (e.target as HTMLInputElement).value;
+            console.log("update config: ", key, config[key]);
+            
+            if (key === "autoDetectDatabaseIDEName") {
+              databaseInput.value = join(
+                utools.getPath("appData"),
+                config.autoDetectDatabaseIDEName,
+                "User",
+                "globalStorage",
+                "state.vscdb"
+              );
+            }
+          });
+        }
       }
     });
+
+
+
+    if (autoDetectCheckbox && databaseInput && autoDetectDatabaseIDENameInput) {
+      // 切换输入框状态的函数
+      const toggleInputStates = () => {
+        if (autoDetectCheckbox.checked) {
+          // 勾选时: 数据库配置只读, 多端版本可编辑
+          databaseInput.readOnly = true;
+          databaseInput.style.backgroundColor = '#f5f5f5';
+          databaseInput.style.cursor = 'not-allowed';
+
+          autoDetectDatabaseIDENameInput.disabled = false;
+          autoDetectDatabaseIDENameInput.style.backgroundColor = '#fff';
+          autoDetectDatabaseIDENameInput.style.cursor = 'text';
+
+          // 更新 config
+          config.autoDetectDatabase = '1';
+        } else {
+          // 未勾选时: 数据库配置可编辑, 多端版本只读
+          databaseInput.readOnly = false;
+          databaseInput.style.backgroundColor = '#fff';
+          databaseInput.style.cursor = 'text';
+
+          autoDetectDatabaseIDENameInput.disabled = true;
+          autoDetectDatabaseIDENameInput.style.backgroundColor = '#f5f5f5';
+          autoDetectDatabaseIDENameInput.style.cursor = 'not-allowed';
+
+          // 更新 config
+          config.autoDetectDatabase = '0';
+        }
+      };
+
+      // 初始化状态
+      toggleInputStates();
+
+      // 复选框变化时切换状态
+      autoDetectCheckbox.addEventListener('change', toggleInputStates);
+    }
 
     // 表单提交处理
     form.addEventListener('submit', (e) => {
