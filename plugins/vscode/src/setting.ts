@@ -12,7 +12,7 @@ export interface Config {
   command?: string;
   database?: string;
   autoDetectDatabase?: string;
-  autoDetectDatabaseIDEDir?: string;
+  autoDetectDatabaseIDEName?: string;
   timeout?: string;
   collections?: IListItem[];
   [key: string]: string | IListItem[];
@@ -39,8 +39,8 @@ export function NewConfig(code: string): Config {
       "globalStorage",
       "state.vscdb"
     ),
-    autoDetectDatabase: "1",
-    autoDetectDatabaseIDEDir: code.charAt(0).toUpperCase() + code.slice(1),
+    autoDetectDatabase: "0",
+    autoDetectDatabaseIDEName: "Code",
     timeout: "3000"
   }
 }
@@ -53,17 +53,11 @@ export function GetConfig(code: string): Config {
     SaveConfig(config, false);
   }
 
-  if (!config.autoDetectDatabase) {
-    config.autoDetectDatabase = "0";
-  }
-  if (!config.autoDetectDatabaseIDEDir) {
-    config.autoDetectDatabaseIDEDir = code;
-  }
   // 自动替换AppData路径
   if (config.autoDetectDatabase === "1") {
     config.database = join(
       utools.getPath("appData"),
-      config.autoDetectDatabaseIDEDir,
+      config.autoDetectDatabaseIDEName,
       "User",
       "globalStorage",
       "state.vscdb"
@@ -89,9 +83,6 @@ export class Setting implements Plugin {
   constructor(code: string) {
     this.code = `${code}-setting`;
     this.config = GetConfig(code);
-    if (!this.config.autoDetectDatabaseIDEDir) {
-      this.config.autoDetectDatabaseIDEDir = "Code";
-    }
     console.log("init config success: ", this.config)
   }
 
@@ -120,9 +111,9 @@ export class Setting implements Plugin {
 
     // 获取相关元素
     const autoDetectCheckbox = document.getElementById('autoDetectDatabase') as HTMLInputElement;
-    const databaseContainer = document.getElementById('databaseContainer') as HTMLDivElement;
-    const autoDetectDatabaseContainer = document.getElementById('autoDetectDatabaseContainer') as HTMLDivElement;
-    const databaseTipsElement = document.getElementById('databaseTips') as HTMLDivElement;
+    const databaseInput = form.querySelector('[name="database"]') as HTMLInputElement;
+    const autoDetectDatabaseIDENameInput = form.querySelector('[name="autoDetectDatabaseIDEName"]') as HTMLInputElement;
+
 
     // 初始化绑定所有字段
     Object.keys(config).forEach(key => {
@@ -140,43 +131,64 @@ export class Setting implements Plugin {
         if (input.type === 'checkbox') {
           input.addEventListener('change', (e) => {
             config[key] = (e.target as HTMLInputElement).checked ? '1' : '0';
-            // 复选框变化时更新容器显示状态
-            if (key === 'autoDetectDatabase') {
-              this.toggleDatabaseMode(form, config, autoDetectCheckbox.checked, databaseContainer, autoDetectDatabaseContainer);
-              this.updateDatabaseTips(config, databaseTipsElement);
-            }
           });
         } else {
           input.addEventListener('input', (e) => {
             config[key] = (e.target as HTMLInputElement).value;
-
-
-            // 当修改 autoDetectDatabaseIDEDir 时，自动计算数据库路径
-            if (key === "autoDetectDatabaseIDEDir") {
-              config.database = join(
+            console.log("update config: ", key, config[key]);
+            
+            if (key === "autoDetectDatabaseIDEName") {
+              databaseInput.value = join(
                 utools.getPath("appData"),
-                config.autoDetectDatabaseIDEDir,
+                config.autoDetectDatabaseIDEName,
                 "User",
                 "globalStorage",
                 "state.vscdb"
               );
-              this.updateDatabaseTips(config, databaseTipsElement);
-            }
-
-            // 当修改 database 时，更新提示
-            if (key === "database") {
-              this.updateDatabaseTips(config, databaseTipsElement);
             }
           });
         }
       }
     });
 
-    // 初始化数据库模式显示状态
-    this.toggleDatabaseMode(form, config, autoDetectCheckbox.checked, databaseContainer, autoDetectDatabaseContainer);
 
-    // 初始化数据库路径提示
-    this.updateDatabaseTips(config, databaseTipsElement);
+
+    if (autoDetectCheckbox && databaseInput && autoDetectDatabaseIDENameInput) {
+      // 切换输入框状态的函数
+      const toggleInputStates = () => {
+        if (autoDetectCheckbox.checked) {
+          // 勾选时: 数据库配置只读, 多端版本可编辑
+          databaseInput.readOnly = true;
+          databaseInput.style.backgroundColor = '#f5f5f5';
+          databaseInput.style.cursor = 'not-allowed';
+
+          autoDetectDatabaseIDENameInput.disabled = false;
+          autoDetectDatabaseIDENameInput.style.backgroundColor = '#fff';
+          autoDetectDatabaseIDENameInput.style.cursor = 'text';
+
+          // 更新 config
+          config.autoDetectDatabase = '1';
+        } else {
+          // 未勾选时: 数据库配置可编辑, 多端版本只读
+          databaseInput.readOnly = false;
+          databaseInput.style.backgroundColor = '#fff';
+          databaseInput.style.cursor = 'text';
+
+          autoDetectDatabaseIDENameInput.disabled = true;
+          autoDetectDatabaseIDENameInput.style.backgroundColor = '#f5f5f5';
+          autoDetectDatabaseIDENameInput.style.cursor = 'not-allowed';
+
+          // 更新 config
+          config.autoDetectDatabase = '0';
+        }
+      };
+
+      // 初始化状态
+      toggleInputStates();
+
+      // 复选框变化时切换状态
+      autoDetectCheckbox.addEventListener('change', toggleInputStates);
+    }
 
     // 表单提交处理
     form.addEventListener('submit', (e) => {
@@ -192,43 +204,5 @@ export class Setting implements Plugin {
       utools.showNotification(`${config.code} 配置已保存`);
       utools.outPlugin(true)
     });
-  }
-
-  /**
-   * 切换数据库模式的显示状态
-   * @param config 配置对象
-   * @param isAutoDetect 是否启用自动适配
-   * @param databaseContainer 数据库手动配置容器
-   * @param autoDetectDatabaseContainer 自动适配容器
-   */
-  private toggleDatabaseMode(
-    form: HTMLElement,
-    config: Config,
-    isAutoDetect: boolean,
-    databaseContainer: HTMLDivElement,
-    autoDetectDatabaseContainer: HTMLDivElement
-  ) {
-    if (isAutoDetect) {
-      // 启用自动适配模式
-      databaseContainer.style.display = 'none';
-      autoDetectDatabaseContainer.style.display = 'block';
-    } else {
-      // 手动配置模式
-      const databaseInput = form.querySelector('[name="database"]') as HTMLInputElement;
-      databaseInput.value = config.database as string;
-      databaseContainer.style.display = 'block';
-      autoDetectDatabaseContainer.style.display = 'none';
-    }
-  }
-
-  /**
-   * 更新数据库路径提示
-   * @param config 配置对象
-   * @param databaseTipsElement 提示元素
-   */
-  private updateDatabaseTips(config: Config, databaseTipsElement: HTMLDivElement) {
-    if (databaseTipsElement && config.database) {
-      databaseTipsElement.textContent = config.database as string;
-    }
   }
 }
