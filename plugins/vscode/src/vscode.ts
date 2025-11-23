@@ -4,8 +4,6 @@ import { readdirSync } from "fs";
 import { ExecOptions, exec, execSync } from "child_process";
 import { GetFiles, DeleteFiles } from "./files";
 import { Config, GetConfig, SaveConfig } from "./setting";
-import { Action } from "utools-helper/dist/template_plugin";
-import { get } from "http";
 
 
 export class VSCode implements Plugin {
@@ -142,6 +140,7 @@ export class VSCode implements Plugin {
       return;
     }
 
+    
     // 原有的打开 VSCode 逻辑
     let code = this.config.command;
     if (code.trim().includes(" ")) code = `"${code}"`;
