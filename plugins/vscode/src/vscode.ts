@@ -5,6 +5,7 @@ import { ExecOptions, exec, execSync } from "child_process";
 import { GetFiles, DeleteFiles } from "./files";
 import { Config, GetConfig, SaveConfig } from "./setting";
 import { Action } from "utools-helper/dist/template_plugin";
+import { get } from "http";
 
 
 export class VSCode implements Plugin {
@@ -233,6 +234,17 @@ export class VSCode implements Plugin {
     utools.setSubInputValue("-rm")
   }
 
+  private getFilePath(item: ListItem<string>): string {
+    let path  = decodeURIComponent(item.data);
+    // 去掉开头的 file:///
+    path = path.replace(/^file:\/\/\//, "");
+    // 如果不是 windows 系统 开头加上 /
+    if (!utools.isWindows()) {
+      path = "/" + path;
+    }
+    return path;
+  }
+
   /**
    * 显示确认删除对话框
    * @param fileName 文件名
@@ -249,10 +261,7 @@ export class VSCode implements Plugin {
    */
   private handleCopyPath(item: ListItem<string>) {
     try {
-      // 去掉开头的 file:///
-      // console.log("item.data:", item.data);
-      const fileName = decodeURIComponent(item.data);
-      let path = fileName.replace(/^file:\/\//, "");
+      let path = this.getFilePath(item);
       
       // 复制到剪贴板
       utools.copyText(path);
@@ -272,9 +281,7 @@ export class VSCode implements Plugin {
    */
   private handleTotalCommander(item: ListItem<string>) {
     try {
-      // 去掉开头的 file:///
-      const fileName = decodeURIComponent(item.data);
-      let path = fileName.replace(/^file:\/\//, "");
+      let path = this.getFilePath(item);
       
       // 构建 Total Commander 命令
       let cmd = `TOTALCMD64 /O /T "${path}"`;
@@ -309,9 +316,8 @@ export class VSCode implements Plugin {
    */
   private handleDoubleCommander(item: ListItem<string>) {
     try {
-      // 去掉开头的 file:///
-      const fileName = decodeURIComponent(item.data);
-      let path = fileName.replace(/^file:\/\//, "");
+      
+      let path = this.getFilePath(item);
       
       // 构建 Double Commander 命令
       let cmd =  `open -a Double\\ Commander -n --args  -T -L "${path}"`;
