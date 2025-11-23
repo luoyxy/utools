@@ -43,6 +43,10 @@ export function NewConfig(code: string): Config {
 
 export function GetConfig(code: string): Config {
   let key = utools.getNativeId() + "." + code
+  console.log("get config key: ", key)
+  if (!utools.dbStorage.getItem(key)) {
+    SaveConfig(NewConfig(code))
+  }
   return utools.dbStorage.getItem(key) as Config || {};
 }
 

@@ -1,11 +1,10 @@
 import { Plugin, ListItem } from "utools-helper";
 import { basename, join, extname } from "path";
-import { readdirSync } from "fs";
+import { readdirSync, existsSync } from "fs";
 import { ExecOptions, exec, execSync } from "child_process";
 import { GetFiles, DeleteFiles } from "./files";
 import { Config, GetConfig, SaveConfig } from "./setting";
 import { Action } from "utools-helper/dist/template_plugin";
-import { get } from "http";
 
 
 export class VSCode implements Plugin {
@@ -33,7 +32,49 @@ export class VSCode implements Plugin {
   }
 
   async enter(): Promise<ListItem[]> {
+    // 检查数据库路径的有效性
+    const validationResult = this.validateStoragePath();
+    if (!validationResult.valid) {
+      return [
+        new ListItem<string>(
+          "⚠️ 错误：数据库文件不存在",
+          validationResult.message,
+          validationResult.message
+        )
+      ];
+    }
+
     return await this.search("");
+  }
+
+  /**
+   * 验证存储路径是否有效
+   * @returns 验证结果对象，包含 valid 和 message 属性
+   */
+  private validateStoragePath(): { valid: boolean; message: string } {
+    const storagePath = this.storage;
+
+    // 检查路径是否为空
+    if (!storagePath || storagePath.trim() === "") {
+      return {
+        valid: false,
+        message: "错误：数据库路径未配置，请进入设置页面进行配置"
+      };
+    }
+
+    // 检查路径是否存在
+    if (!existsSync(storagePath)) {
+      return {
+        valid: false,
+        message: `错误：数据库文件不存在，请检查设置页面的数据库配置或者尚未安装IDE。`
+      };
+    }
+
+    // 路径有效
+    return {
+      valid: true,
+      message: ""
+    };
   }
 
   async search(word?: string): Promise<ListItem[]> {
